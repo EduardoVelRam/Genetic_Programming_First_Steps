@@ -1,10 +1,12 @@
 from deap import base
 from deap import creator
 from deap import tools
+import math # para las distancias
 
 import random
 import matplotlib
 matplotlib.use('TkAgg')
+
 import matplotlib.pyplot as plt
 import seaborn as sns
 
@@ -18,6 +20,17 @@ P_MUTATION = 0.1   # probability for mutating an individual
 MAX_GENERATIONS = 50
 
 
+cities = {
+    0:(0,0),
+    1:(2,3),
+    2:(5,4),
+    3:(1,7),
+    4:(8,1),
+    5:(7,6),
+    6:(3,9),
+    7:(9,8)
+}
+
 # set the random seed:
 RANDOM_SEED = 42
 random.seed(RANDOM_SEED)
@@ -28,10 +41,12 @@ toolbox = base.Toolbox()
 toolbox.register("zeroOrOne", random.randint, 0, 1)
 
 # define a single objective, maximizing fitness strategy:
-creator.create("FitnessMax", base.Fitness, weights=(1.0,))
+creator.create("FitnessMax", base.Fitness, weights=(1.0,)) # maximiza
+creator.create("FitnessMin", base.Fitness, weights=(-1.0,)) # minimiza
 
 # create the Individual class based on list:
-creator.create("Individual", list, fitness=creator.FitnessMax)
+creator.create("Individual", list, fitness=creator.FitnessMax) # maximiza
+creator.create("Individual", list, fitness=creator.FitnessMin) # minimiza
 
 # create the individual operator to fill up an Individual instance:
 toolbox.register("individualCreator", tools.initRepeat, creator.Individual, toolbox.zeroOrOne, ONE_MAX_LENGTH)
@@ -45,22 +60,69 @@ toolbox.register("populationCreator", tools.initRepeat, list, toolbox.individual
 def oneMaxFitness(individual):
     return sum(individual),  # return a tuple
 
+def createRoute():
+    route = list(range(8))
+    random.shuffle(route)
+    return route
 
-toolbox.register("evaluate", oneMaxFitness)
+toolbox.register(
+    "individualCreator",
+    tools.initIterate,
+    creator.Individual,
+    createRoute
+)
+
+# distancia euclidiana
+def distance(city1, city2):
+
+    x1, y1 = cities[city1]
+    x2, y2 = cities[city2]
+
+    return math.sqrt(
+        (x1-x2)**2 +
+        (y1-y2)**2
+    )   
+
+# fitness del recorrido
+def tspFitness(individual):
+
+    totalDistance = 0
+
+    for i in range(len(individual)-1):
+
+        totalDistance += distance(
+            individual[i],
+            individual[i+1]
+        )
+
+    totalDistance += distance(
+        individual[-1],
+        individual[0]
+    )
+
+    return totalDistance,
+
+toolbox.register("evaluate", oneMaxFitness) # antes
+toolbox.register("evaluate", tspFitness)    # nuevo
 
 # genetic operators:
 
 # Tournament selection with tournament size of 3:
 toolbox.register("select", tools.selTournament, tournsize=3)
+toolbox.register("select", tools.selTournament, tournsize=3) # permanece igual
 
 # Single-point crossover:
-toolbox.register("mate", tools.cxOnePoint)
+toolbox.register("mate", tools.cxOnePoint) # ya no se usa 
+toolbox.register("mate", tools.cxOrdered)  # operador para permutaciones
+toolbox.register("mate", tools.cxPartialyMatched) # otra opción válida
 
 # Flip-bit mutation:
 # indpb: Independent probability for each attribute to be flipped
-toolbox.register("mutate", tools.mutFlipBit, indpb=1.0/ONE_MAX_LENGTH)
+toolbox.register("mutate", tools.mutFlipBit, indpb=1.0/ONE_MAX_LENGTH) # anterior
+toolbox.register("mutate", tools.mutShuffleIndexes, indpb=0.2)         # nuevo
 
-print(matplotlib.get_backend())
+
+
 
 # Genetic Algorithm flow:
 def main():
