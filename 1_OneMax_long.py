@@ -11,15 +11,6 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 # problem constants:
-ONE_MAX_LENGTH = 100  # length of bit string to be optimized
-
-# Genetic Algorithm constants:
-POPULATION_SIZE = 200
-P_CROSSOVER = 0.9  # probability for crossover
-P_MUTATION = 0.1   # probability for mutating an individual
-MAX_GENERATIONS = 50
-
-
 cities = {
     0:(0,0),
     1:(2,3),
@@ -31,6 +22,16 @@ cities = {
     7:(9,8)
 }
 
+# ONE_MAX_LENGTH = 100  # length of bit string to be optimized
+NUM_CITIES = len(cities)
+
+# Genetic Algorithm constants:
+POPULATION_SIZE = 200
+P_CROSSOVER = 0.9  # probability for crossover
+P_MUTATION = 0.1   # probability for mutating an individual
+MAX_GENERATIONS = 50
+
+
 # set the random seed:
 RANDOM_SEED = 42
 random.seed(RANDOM_SEED)
@@ -38,18 +39,24 @@ random.seed(RANDOM_SEED)
 toolbox = base.Toolbox()
 
 # create an operator that randomly returns 0 or 1:
-toolbox.register("zeroOrOne", random.randint, 0, 1)
+# toolbox.register("zeroOrOne", random.randint, 0, 1) # ya no se usa
 
 # define a single objective, maximizing fitness strategy:
-creator.create("FitnessMax", base.Fitness, weights=(1.0,)) # maximiza
+# creator.create("FitnessMax", base.Fitness, weights=(1.0,)) # maximiza
 creator.create("FitnessMin", base.Fitness, weights=(-1.0,)) # minimiza
 
 # create the Individual class based on list:
-creator.create("Individual", list, fitness=creator.FitnessMax) # maximiza
+# creator.create("Individual", list, fitness=creator.FitnessMax) # maximiza
 creator.create("Individual", list, fitness=creator.FitnessMin) # minimiza
 
+def createRoute():
+    route = list(range(8))
+    random.shuffle(route)
+    return route
+
 # create the individual operator to fill up an Individual instance:
-toolbox.register("individualCreator", tools.initRepeat, creator.Individual, toolbox.zeroOrOne, ONE_MAX_LENGTH)
+#toolbox.register("individualCreator", tools.initRepeat, creator.Individual, toolbox.zeroOrOne, ONE_MAX_LENGTH)
+toolbox.register("individualCreator", tools.initIterate, creator.Individual, createRoute)
 
 # create the population operator to generate a list of individuals:
 toolbox.register("populationCreator", tools.initRepeat, list, toolbox.individualCreator)
@@ -57,20 +64,9 @@ toolbox.register("populationCreator", tools.initRepeat, list, toolbox.individual
 
 # fitness calculation:
 # compute the number of '1's in the individual
-def oneMaxFitness(individual):
-    return sum(individual),  # return a tuple
+#def oneMaxFitness(individual):
+#    return sum(individual),  # return a tuple
 
-def createRoute():
-    route = list(range(8))
-    random.shuffle(route)
-    return route
-
-toolbox.register(
-    "individualCreator",
-    tools.initIterate,
-    creator.Individual,
-    createRoute
-)
 
 # distancia euclidiana
 def distance(city1, city2):
@@ -102,26 +98,23 @@ def tspFitness(individual):
 
     return totalDistance,
 
-toolbox.register("evaluate", oneMaxFitness) # antes
-toolbox.register("evaluate", tspFitness)    # nuevo
+#toolbox.register("evaluate", oneMaxFitness) # antes
+toolbox.register("evaluate", tspFitness)    # 
 
 # genetic operators:
 
 # Tournament selection with tournament size of 3:
-toolbox.register("select", tools.selTournament, tournsize=3)
 toolbox.register("select", tools.selTournament, tournsize=3) # permanece igual
 
 # Single-point crossover:
-toolbox.register("mate", tools.cxOnePoint) # ya no se usa 
-toolbox.register("mate", tools.cxOrdered)  # operador para permutaciones
+#toolbox.register("mate", tools.cxOnePoint) # ya no  
+#toolbox.register("mate", tools.cxOrdered)  # operador para permutaciones
 toolbox.register("mate", tools.cxPartialyMatched) # otra opción válida
 
 # Flip-bit mutation:
 # indpb: Independent probability for each attribute to be flipped
-toolbox.register("mutate", tools.mutFlipBit, indpb=1.0/ONE_MAX_LENGTH) # anterior
+#toolbox.register("mutate", tools.mutFlipBit, indpb=1.0/ONE_MAX_LENGTH) # anterior
 toolbox.register("mutate", tools.mutShuffleIndexes, indpb=0.2)         # nuevo
-
-
 
 
 # Genetic Algorithm flow:
@@ -141,12 +134,14 @@ def main():
 
     # initialize statistics accumulators:
     maxFitnessValues = []
+    bestDistanceValues = []
     meanFitnessValues = []
 
     # main evolutionary loop:
     # stop if max fitness value reached the known max value
     # OR if number of generations exceeded the preset value:
-    while max(fitnessValues) < ONE_MAX_LENGTH and generationCounter < MAX_GENERATIONS:
+    #while max(fitnessValues) < ONE_MAX_LENGTH and generationCounter < MAX_GENERATIONS: # ya no se pretende minimizar
+    while generationCounter < MAX_GENERATIONS:
         # update counter:
         generationCounter = generationCounter + 1
 
@@ -179,25 +174,41 @@ def main():
         # collect fitnessValues into a list, update statistics and print:
         fitnessValues = [ind.fitness.values[0] for ind in population]
 
-        maxFitness = max(fitnessValues)
+        #maxFitness = max(fitnessValues) # ya no se quiere maximizar
+        bestFitness = min(fitnessValues)
         meanFitness = sum(fitnessValues) / len(population)
-        maxFitnessValues.append(maxFitness)
+        #maxFitnessValues.append(maxFitness)
+        bestDistanceValues.append(bestFitness)
         meanFitnessValues.append(meanFitness)
-        print(f"- Generation {generationCounter}: Max Fitness = {maxFitness}, Avg Fitness = {meanFitness}")
+        #print(f"- Generation {generationCounter}: Max Fitness = {maxFitness}, Avg Fitness = {meanFitness}")
+        print(f"- Generation {generationCounter}: Best Distance = {bestFitness:.3f}, Avg Distance = {meanFitness:.3f}")
 
         # find and print best individual:
-        best_index = fitnessValues.index(max(fitnessValues))
+        #best_index = fitnessValues.index(max(fitnessValues)) # lo mismo
+        best_index = fitnessValues.index(min(fitnessValues))
         print("Best Individual = ", *population[best_index], "\n")
 
     # Genetic Algorithm is done - plot statistics:
     sns.set_style("whitegrid")
-    plt.plot(maxFitnessValues, color='red')
-    plt.plot(meanFitnessValues, color='green')
+    #plt.plot(maxFitnessValues, color='red')
+    plt.plot(bestDistanceValues, color='red', label='Best Distance')
+    # plt.plot(meanFitnessValues, color='green')
+    plt.plot(meanFitnessValues, color='green', label='Average Distance')
     plt.xlabel('Generation')
-    plt.ylabel('Max / Average Fitness')
-    plt.title('Max and Average Fitness over Generations')
+    plt.ylabel('Distance')
+    plt.title('TSP Distance over Generations')
+    plt.legend()
+    # plt.title('Max and Average Fitness over Generations')
 
     plt.show()
+
+    best_index = fitnessValues.index(min(fitnessValues))
+
+    print("\nBest Route:")
+    print(population[best_index])
+
+    print("\nTotal Distance:")
+    print(fitnessValues[best_index])
 
 
 if __name__ == "__main__":
