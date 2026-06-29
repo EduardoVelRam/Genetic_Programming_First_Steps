@@ -11,6 +11,9 @@ import seaborn as sns
 
 import knapsack
 
+print(knapsack.__file__)
+print(dir(knapsack))
+
 # problem constants:
 # create the knapsack problem instance to be used:
 knapsack = knapsack.Knapsack01Problem()
