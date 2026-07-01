@@ -10,7 +10,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-import tsp
+import tsp 
 
 # set the random seed for repeatable results
 RANDOM_SEED = 42
